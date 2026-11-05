@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,57 +13,57 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout your repository code
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Set up Node.js (required for Capacitor)
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '22'
 
-    # 3. Set up Java JDK 17 (required for Android Gradle builds)
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 4. Install Capacitor dependencies globally
-    - name: Install Capacitor
-      run: npm install -g @capacitor/cli @capacitor/core @capacitor/android
+    # 1. Initialize npm project (if package.json doesn't exist)
+    - name: Initialize npm project
+      run: |
+        if [ ! -f package.json ]; then
+          npm init -y
+        fi
 
-    # 5. Prepare the www directory and copy your HTML file
-    # Replace 'index.html' with the actual name of your file if it's different
+    # 2. Install Capacitor dependencies locally (not globally)
+    - name: Install Capacitor dependencies
+      run: |
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+
+    # 3. Prepare the www directory and copy your HTML file
     - name: Prepare Web Assets
       run: |
-        mkdir www
+        mkdir -p www
         cp index.html www/index.html
 
-    # 6. Initialize Capacitor with your app details
-    # You can change the App Name and App ID (package name) as needed
-    - name: Initialize Capacitor Project
+    # 4. Initialize Capacitor (creates capacitor.config.json)
+    - name: Initialize Capacitor
       run: npx cap init "AI Study Assistant" "com.aistudyassistant.app" --web-dir=www
 
-    # 7. Add the Android platform
+    # 5. Add the Android platform (uses the locally installed CLI)
     - name: Add Android Platform
       run: npx cap add android
 
-    # 8. Sync web assets to the Android project
+    # 6. Sync web assets
     - name: Sync Web Assets to Android
       run: npx cap sync android
 
-    # 9. Grant execute permission for the Gradle wrapper
     - name: Grant execute permission for gradlew
       run: chmod +x android/gradlew
 
-    # 10. Build the Debug APK using Gradle
     - name: Build Debug APK
       working-directory: ./android
       run: ./gradlew assembleDebug
 
-    # 11. Upload the generated APK as a downloadable artifact
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
